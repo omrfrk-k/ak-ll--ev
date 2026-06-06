@@ -6,6 +6,8 @@
     <title>Kocaeli Üniversitesi - Akıllı Sera IoT Kontrol Paneli</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         :root {
             --primary-color: #1b4d3e;
@@ -46,7 +48,6 @@
             padding: 0 20px;
         }
         
-        /* Zaman ve Proje Bilgi Alanı */
         .project-meta-row {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -259,22 +260,22 @@
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-temperature-half" style="color: #e74c3c;"></i></div>
                 <h3>Ortam Sıcaklığı</h3>
-                <div class="value" id="temp">24.5<span class="unit">°C</span></div>
+                <div class="value" id="temp">--<span class="unit">°C</span></div>
             </div>
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-droplet" style="color: #3498db;"></i></div>
                 <h3>Bağıl Hava Nemi</h3>
-                <div class="value" id="humidity">58.2<span class="unit">%</span></div>
+                <div class="value" id="humidity">--<span class="unit">%</span></div>
             </div>
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-seedling" style="color: #27ae60;"></i></div>
                 <h3>Toprak Nem Oranı</h3>
-                <div class="value" id="soil">1850<span class="unit">Ham</span></div>
+                <div class="value" id="soil">--<span class="unit">Ham</span></div>
             </div>
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-solar-panel" style="color: #f1c40f;"></i></div>
                 <h3>PV Panel Gerilimi</h3>
-                <div class="value" id="voltage">4.15<span class="unit">V</span></div>
+                <div class="value" id="voltage">--<span class="unit">V</span></div>
             </div>
         </div>
 
@@ -282,17 +283,17 @@
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-faucet-drip" style="color: #3498db;"></i></div>
                 <h3>Sulama Pompası</h3>
-                <div style="margin-top:10px;"><span class="badge badge-success" id="pumpStatus">Aktif (Çalışıyor)</span></div>
+                <div style="margin-top:10px;"><span class="badge" id="pumpStatus">Yükleniyor...</span></div>
             </div>
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-lightbulb" style="color: #f39c12;"></i></div>
                 <h3>Yapay Aydınlatma (LED)</h3>
-                <div style="margin-top:10px;"><span class="badge badge-danger" id="ledStatus">Pasif (Kapalı)</span></div>
+                <div style="margin-top:10px;"><span class="badge" id="ledStatus">Yükleniyor...</span></div>
             </div>
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-bolt" style="color: #f1c40f;"></i></div>
                 <h3>Anlık Teorik Güç</h3>
-                <div class="value" id="power">1.37<span class="unit"> W</span></div>
+                <div class="value" id="power">--<span class="unit"> W</span></div>
             </div>
         </div>
 
@@ -310,20 +311,21 @@
                     Aşağıdaki aktüatör butonları aracılığıyla fiziksel seraya bulut üzerinden manuel müdahale gerçekleştirebilirsiniz.
                 </p>
                 <div class="btn-group">
-                    <button class="btn" onclick="alert('Sulama sistemi tetiklendi!')"><i class="fa-solid fa-pump-soap"></i> Pompayı Manuel Başlat</button>
-                    <button class="btn btn-danger" onclick="alert('Sulama sistemi durduruldu!')"><i class="fa-solid fa-power-off"></i> Pompayı Kapat</button>
-                    <button class="btn" style="background-color:#34495e;" onclick="alert('Aydınlatma sistemi değiştirildi!')"><i class="fa-solid fa-lightbulb"></i> Aydınlatmayı Değiştir</button>
+                    <button class="btn" onclick="setControl('pump', 1)"><i class="fa-solid fa-pump-soap"></i> Pompayı Manuel Başlat</button>
+                    <button class="btn btn-danger" onclick="setControl('pump', 0)"><i class="fa-solid fa-power-off"></i> Pompayı Kapat</button>
+                    <button class="btn" style="background-color:#34495e;" onclick="toggleLed()"><i class="fa-solid fa-lightbulb"></i> Aydınlatmayı Değiştir</button>
                 </div>
             </div>
         </div>
 
         <div class="status-bar">
             <i class="fa-solid fa-circle-dot" style="color: #2ecc71;"></i> 
-            Merkezi Sunucu Bağlantısı: Tam Entegrasyon Sağlandı. Veriler anlık olarak güncellenmektedir.
+            Merkezi Sunucu Bağlantısı: Sunucu Aktif. Canlı veriler Firebase üzerinden akmaktadır.
         </div>
     </div>
 
     <script>
+        // Zaman damgası tetikleyicisi
         function updateDateTime() {
             const now = new Date();
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
@@ -331,25 +333,87 @@
             const dateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
             document.getElementById('liveDate').innerText = now.toLocaleDateString('tr-TR', dateOptions);
         }
-        
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
+        // ------------------ FIREBASE ENTEGRASYON ALANI gadaşım ------------------
+        // Firebase Konfigürasyonu
+        const firebaseConfig = {
+            databaseURL: "https://kou-akilli-sera-default-rtdb.firebaseio.com/"
+        };
+        
+        // Firebase'i Başlat
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let currentLedValue = 0; // Led durum kontrolü için değişken
+
+        // Firebase'deki Verileri Canlı Dinleme (Milisaniyelik Akış)
+        database.ref('/').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Değerleri Ekrana Canlı Basıyoruz la
+                document.getElementById('temp').innerHTML = `${data.temp} <span class="unit">°C</span>`;
+                document.getElementById('humidity').innerHTML = `${data.humidity} <span class="unit">%</span>`;
+                document.getElementById('soil').innerHTML = `${data.soil} <span class="unit">Ham</span>`;
+                document.getElementById('voltage').innerHTML = `${data.voltage} <span class="unit">V</span>`;
+                
+                // Enerji mühendisliği anlık güç hesabı (Örnek akım 0.33A kabul edilirse: P = V * I)
+                let calculatedPower = (parseFloat(data.voltage) * 0.33).toFixed(2);
+                document.getElementById('power').innerHTML = `${calculatedPower} <span class="unit">W</span>`;
+
+                // Pompa Durum Rozeti Güncellemesi
+                const pumpBadge = document.getElementById('pumpStatus');
+                if(data.pump == 1) {
+                    pumpBadge.innerText = "Aktif (Çalışıyor)";
+                    pumpBadge.className = "badge badge-success";
+                } else {
+                    pumpBadge.innerText = "Pasif (Kapalı)";
+                    pumpBadge.className = "badge badge-danger";
+                }
+
+                // LED Durum Rozeti Güncellemesi
+                const ledBadge = document.getElementById('ledStatus');
+                currentLedValue = data.led;
+                if(data.led == 1) {
+                    ledBadge.innerText = "Aktif (Açık)";
+                    ledBadge.className = "badge badge-success";
+                } else {
+                    ledBadge.innerText = "Pasif (Kapalı)";
+                    ledBadge.className = "badge badge-danger";
+                }
+
+                // Canlı Verileri Grafiğe de İtiyoruz gadaşım (Son okunan değeri grafiğin sonuna ekleme şovu)
+                updateChart(data.temp, data.voltage);
+            }
+        });
+
+        // Sitedeki Butonlara Basınca Firebase'e Veri Fırlatma Fonksiyonu (Çift Yönlü IoT)
+        function setControl(key, value) {
+            database.ref('/' + key).set(value);
+        }
+
+        function toggleLed() {
+            let nextValue = currentLedValue == 1 ? 0 : 1;
+            setControl('led', nextValue);
+        }
+
+        // ------------------ GRAFİK KODLARI ------------------
         const ctx = document.getElementById('telemetryChart').getContext('2d');
         const telemetryChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+                labels: ['10:00', '12:00', '14:00', '16:00', '18:00', 'Anlık'],
                 datasets: [{
                     label: 'Sıcaklık (°C)',
-                    data: [21, 23.5, 25, 24.8, 22.1, 19.5],
+                    data: [21, 23.5, 25, 24.8, 22.1, 24.5],
                     borderColor: '#e74c3c',
                     backgroundColor: 'rgba(231, 76, 60, 0.05)',
                     tension: 0.3,
                     pointRadius: 4
                 }, {
                     label: 'Panel Gerilimi (V)',
-                    data: [3.2, 4.1, 4.3, 3.9, 2.5, 0.5],
+                    data: [3.2, 4.1, 4.3, 3.9, 2.5, 4.15],
                     borderColor: '#f1c40f',
                     backgroundColor: 'rgba(241, 196, 15, 0.05)',
                     tension: 0.3,
@@ -359,14 +423,17 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 500
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
+                animation: { duration: 300 },
+                scales: { y: { beginAtZero: true } }
             }
         });
+
+        // Grafiği canlı veriyle güncelleme simülasyonu
+        function updateChart(temp, volt) {
+            telemetryChart.data.datasets[0].data[5] = temp;
+            telemetryChart.data.datasets[1].data[5] = volt;
+            telemetryChart.update();
+        }
     </script>
 </body>
 </html>
