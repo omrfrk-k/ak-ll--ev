@@ -46,7 +46,7 @@
             padding: 0 20px;
         }
         
-        /* Geliştirilmiş Zaman ve Proje Bilgi Alanı */
+        /* Zaman ve Proje Bilgi Alanı */
         .project-meta-row {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -115,7 +115,7 @@
             background: var(--card-bg);
             padding: 25px 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 12 rgba(0,0,0,0.03);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             border: 1px solid #e1e8ed;
             position: relative;
             overflow: hidden;
@@ -237,7 +237,7 @@
     <div class="container">
         <div class="project-meta-row">
             <div class="project-info">
-                <h2>Enerji Sistemleri Mühendisliği - Tasarım Projesi</h2>
+                <h2>Enerji Sistemleri Mühendisliği - Bitirme Projesi</h2>
                 <p><strong>Proje Tanımı:</strong> Fotovoltaik Panel Voltaj Ölçümlü ve Sensör Geri Beslemeli Akıllı Sera Otomasyonu</p>
                 <p><strong>Veri İletişim Protokolü:</strong> Wi-Fi Tabanlı Bulut Telemetri (Cloud Telemetry) Aktif</p>
             </div>
@@ -321,23 +321,16 @@
     </div>
 
     <script>
-        // Anlık Saat ve Tarih Güncelleme Fonksiyonu
         function updateDateTime() {
             const now = new Date();
-            
-            // Saati biçimlendir (SS:DD:SS)
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
             document.getElementById('liveTime').innerText = now.toLocaleTimeString('tr-TR', timeOptions);
-            
-            // Tarihi biçimlendir (GG Ay YYYY)
             const dateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
             document.getElementById('liveDate').innerText = now.toLocaleDateString('tr-TR', dateOptions);
         }
-        // Her saniye saati güncelle la
         setInterval(updateDateTime, 1000);
-        updateDateTime(); // İlk açılışta hemen çalıştır
+        updateDateTime();
 
-        // Grafik Çizim Ayarları
         const ctx = document.getElementById('telemetryChart').getContext('2d');
         const telemetryChart = new Chart(ctx, {
             type: 'line',
