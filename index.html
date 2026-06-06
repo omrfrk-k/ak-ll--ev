@@ -105,9 +105,15 @@
             margin-top: 2px;
         }
 
-        .grid {
+        .grid-4 {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 25px;
         }
@@ -249,7 +255,7 @@
             </div>
         </div>
 
-        <div class="grid">
+        <div class="grid-4">
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-temperature-half" style="color: #e74c3c;"></i></div>
                 <h3>Ortam Sıcaklığı</h3>
@@ -262,7 +268,7 @@
             </div>
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-seedling" style="color: #27ae60;"></i></div>
-                <h3>Toprak Matris Potansiyeli</h3>
+                <h3>Toprak Nem Oranı</h3>
                 <div class="value" id="soil">1850<span class="unit">Ham</span></div>
             </div>
             <div class="card">
@@ -272,7 +278,7 @@
             </div>
         </div>
 
-        <div class="grid">
+        <div class="grid-3">
             <div class="card">
                 <div class="card-icon"><i class="fa-solid fa-faucet-drip" style="color: #3498db;"></i></div>
                 <h3>Sulama Pompası</h3>
@@ -287,11 +293,6 @@
                 <div class="card-icon"><i class="fa-solid fa-bolt" style="color: #f1c40f;"></i></div>
                 <h3>Anlık Teorik Güç</h3>
                 <div class="value" id="power">1.37<span class="unit"> W</span></div>
-            </div>
-            <div class="card">
-                <div class="card-icon"><i class="fa-solid fa-leaf" style="color: #2ecc71;"></i></div>
-                <h3>Karbon Tasarrufu</h3>
-                <div class="value" id="co2">0.42<span class="unit"> g/C</span></div>
             </div>
         </div>
 
@@ -323,7 +324,6 @@
     </div>
 
     <script>
-        // Bilgisayarı yormayan optimize saat fonksiyonu
         function updateDateTime() {
             const now = new Date();
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
@@ -332,11 +332,9 @@
             document.getElementById('liveDate').innerText = now.toLocaleDateString('tr-TR', dateOptions);
         }
         
-        // Saniyede bir tetiklenmesi sistemi yormaz gadaşım
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        // Grafik optimizasyonu (Responsive kilitlenmeleri önlendi)
         const ctx = document.getElementById('telemetryChart').getContext('2d');
         const telemetryChart = new Chart(ctx, {
             type: 'line',
@@ -362,7 +360,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: {
-                    duration: 500 // Animasyon süresini kısarak işlemci yükünü sıfırladık
+                    duration: 500
                 },
                 scales: {
                     y: { beginAtZero: true }
